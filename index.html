@@ -1,59 +1,392 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextGen RTA Login Monitor</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/supabase-js/dist/umd/supabase.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NextGen RTA — Login Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&family=DM+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #070d1a; color: #e2e8f0; min-height: 100vh; padding: 24px 20px; }
+
+    /* HEADER */
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .title { font-size: 20px; font-weight: 800; color: #f1f5f9; display: flex; align-items: center; gap: 8px; letter-spacing: -0.02em; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px #10b98133; }
+    .sub { font-size: 12px; color: #475569; margin-top: 3px; }
+    .header-right { display: flex; gap: 8px; }
+    .btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .btn:hover { background: #273548; }
+    .btn-live { background: #10b98122; color: #10b981; }
+
+    /* NOTICE */
+    .notice { background: #f59e0b11; border: 1px solid #f59e0b44; color: #f59e0b; border-radius: 10px; padding: 12px 16px; font-size: 13px; margin-bottom: 20px; display: none; }
+    .notice code { background: #0f172a; padding: 1px 6px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+    /* CARDS */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .card { background: #0f1929; border: 1px solid #1e293b; border-radius: 12px; padding: 14px 16px; }
+    .card-icon { font-size: 18px; margin-bottom: 6px; }
+    .card-val { font-size: 26px; font-weight: 800; line-height: 1; }
+    .card-label { font-size: 10px; color: #475569; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid #1e293b; }
+    .tab-btn { background: none; border: none; color: #475569; cursor: pointer; padding: 8px 14px; font-size: 13px; border-bottom: 2px solid transparent; font-family: inherit; transition: all 0.15s; }
+    .tab-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
+
+    /* PANELS */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .card2 { background: #0f1929; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .card-title { font-weight: 700; font-size: 13px; color: #94a3b8; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* CHART */
+    .chart-wrap { display: flex; align-items: flex-end; gap: 3px; height: 130px; padding-bottom: 4px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+    .bar-stack { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; flex: 1; gap: 1px; }
+    .bar-s { background: #6366f1; border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.3s; }
+    .bar-f { background: #f43f5e; border-radius: 2px 2px 0 0; transition: height 0.3s; }
+    .bar-lbl { font-size: 8px; color: #334155; white-space: nowrap; transform: rotate(-40deg); transform-origin: center; margin-top: 4px; }
+    .legend { font-size: 11px; color: #475569; margin-top: 10px; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+
+    /* ISSUER BARS */
+    .issuer-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .issuer-code { font-size: 12px; font-weight: 700; color: #e2e8f0; width: 50px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+    .issuer-bar { flex: 1; background: #0a1220; border-radius: 99px; height: 6px; overflow: hidden; }
+    .issuer-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 99px; }
+    .issuer-stats { font-size: 12px; width: 80px; text-align: right; }
+
+    /* TABLE */
+    .search-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; color: #334155; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #1e293b; font-weight: 600; }
+    tr { border-bottom: 1px solid #0a1220; }
+    td { padding: 9px 10px; color: #94a3b8; }
+    .badge { padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    input[type=text] { background: #070d1a; border: 1px solid #1e293b; border-radius: 8px; padding: 6px 12px; color: #e2e8f0; font-size: 13px; outline: none; font-family: inherit; }
+
+    /* LOADER */
+    #loader { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; gap: 12px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .green { color: #10b981; } .red { color: #f43f5e; } .yellow { color: #f59e0b; }
+    .bold { font-weight: 700; color: #e2e8f0; }
+    .mono { font-family: 'DM Mono', monospace; }
+    .small { font-size: 12px; }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>NextGen RTA Login Monitor</h1>
-    </header>
-    <nav>
-        <ul>
-            <li><a href="#tab1">Tab 1</a></li>
-            <li><a href="#tab2">Tab 2</a></li>
-            <li><a href="#tab3">Tab 3</a></li>
-        </ul>
-    </nav>
-    <main>
-        <div id="tab1" class="tab-content">
-            <h2>Dashboard</h2>
-            <div id="chart"></div>
-        </div>
-        <div id="tab2" class="tab-content">
-            <h2>Settings</h2>
-            <p>Settings content goes here.</p>
-        </div>
-        <div id="tab3" class="tab-content">
-            <h2>Log</h2>
-            <p>Log content goes here.</p>
-        </div>
-    </main>
-    <footer>
-        <p>&copy; 2026 NextGen RTA Monitor</p>
-    </footer>
-    <script>
-        const supabaseUrl = 'YOUR_SUPABASE_URL';
-        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Fetch data and update chart
-        async function fetchData() {
-            let { data, error } = await supabase
-                .from('table_name')
-                .select('*');
-            if (!error) {
-                console.log(data);
-                // Update chart with data
-            }
-        }
+<!-- ── CREDENTIALS — ONLY CHANGE THESE TWO LINES ── -->
+<script>
+  const SUPABASE_URL  = "https://dkitqmcygkyonlcjcofj.supabase.co";
+  const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRraXRxbWN5Z2t5b25sY2pjb2ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTYwMDgsImV4cCI6MjA4ODM3MjAwOH0.ED0Ybc-Iqi4tjj4VhgqJaxk9Ca4l6HTuQuX9b40N4BU";
+</script>
+<!-- ──────────────────────────────────────────────── -->
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-        });
-    </script>
+<div id="loader">
+  <div class="spinner"></div>
+  <span style="color:#94a3b8;font-size:13px;font-family:'DM Mono',monospace">Connecting to Supabase…</span>
+</div>
+
+<div id="app" style="display:none">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="title"><span class="pulse"></span> NextGen RTA — Login Monitor</div>
+      <div class="sub" id="sub-text">Loading…</div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-live" id="btn-auto" onclick="toggleAuto()">⏸ Pause Auto-refresh</button>
+      <button class="btn" onclick="loadData()">🔄 Refresh Now</button>
+    </div>
+  </div>
+
+  <!-- NOTICE -->
+  <div class="notice" id="notice">
+    ⚠️ Showing demo data. To see real data, open this file in Notepad and paste your Supabase anon key on line 2 inside the <code>SUPABASE_KEY</code> variable.
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="cards">
+    <div class="card"><div class="card-icon">🔐</div><div class="card-val" id="c-logins" style="color:#6366f1">—</div><div class="card-label">Total Logins</div></div>
+    <div class="card"><div class="card-icon">❌</div><div class="card-val" id="c-failed" style="color:#f43f5e">—</div><div class="card-label">Failed Attempts</div></div>
+    <div class="card"><div class="card-icon">✅</div><div class="card-val" id="c-rate" style="color:#10b981">—</div><div class="card-label">Success Rate</div></div>
+    <div class="card"><div class="card-icon">🏢</div><div class="card-val" id="c-issuers" style="color:#8b5cf6">—</div><div class="card-label">Unique Issuers</div></div>
+    <div class="card"><div class="card-icon">🌐</div><div class="card-val" id="c-ips" style="color:#0ea5e9">—</div><div class="card-label">Unique IPs</div></div>
+    <div class="card"><div class="card-icon">⚠️</div><div class="card-val" id="c-sus" style="color:#10b981">—</div><div class="card-label">Suspicious</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('overview',this)">📊 Overview</button>
+    <button class="tab-btn" onclick="showTab('issuers',this)">🏢 Issuers</button>
+    <button class="tab-btn" onclick="showTab('suspicious',this)" id="sus-tab">⚠️ Suspicious</button>
+    <button class="tab-btn" onclick="showTab('log',this)">📋 Full Log</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="panel-overview" class="panel active">
+    <div class="grid2">
+      <div class="card2">
+        <div class="card-title">📈 Login Activity — Last 14 Days</div>
+        <div class="chart-wrap" id="chart"></div>
+        <div class="legend">
+          <span class="dot" style="background:#6366f1"></span>Successful &nbsp;&nbsp;
+          <span class="dot" style="background:#f43f5e"></span>Failed
+        </div>
+      </div>
+      <div class="card2">
+        <div class="card-title">🏆 Most Active Issuers</div>
+        <div id="issuer-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUERS -->
+  <div id="panel-issuers" class="panel">
+    <div class="card2">
+      <div class="card-title">🏢 All Issuer Activity</div>
+      <table><thead><tr>
+        <th>Issuer Code</th><th>✅ Logins</th><th>❌ Failed</th><th>Success Rate</th><th>Unique IPs</th><th>Last Login</th>
+      </tr></thead><tbody id="tbl-issuers"></tbody></table>
+    </div>
+  </div>
+
+  <!-- SUSPICIOUS -->
+  <div id="panel-suspicious" class="panel">
+    <div class="card2">
+      <div class="card-title">⚠️ Suspicious — 3+ Failed Attempts</div>
+      <div id="sus-content"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="panel-log" class="panel">
+    <div class="card2">
+      <div class="search-row">
+        <div class="card-title" style="margin:0" id="log-title">📋 Full Log</div>
+        <input type="text" id="search" placeholder="Search issuer or IP…" oninput="renderLog()"/>
+      </div>
+      <table><thead><tr>
+        <th>Issuer Code</th><th>IP Address</th><th>✅ Logins</th><th>❌ Failed</th><th>Date</th><th>Last Login</th>
+      </tr></thead><tbody id="tbl-log"></tbody></table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let allData = [];
+  let autoRefresh = true;
+  let timer = null;
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function timeAgo(ts) {
+    const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+    if (d < 60) return d + 's ago';
+    if (d < 3600) return Math.floor(d/60) + 'm ago';
+    if (d < 86400) return Math.floor(d/3600) + 'h ago';
+    return Math.floor(d/86400) + 'd ago';
+  }
+  function fmtDate(s) {
+    return new Date(s + 'T00:00:00').toLocaleDateString('en-IN', {month:'short', day:'numeric'});
+  }
+
+  // ── mock data ─────────────────────────────────────────────────────────────
+  function getMock() {
+    const codes = ['AAAA','BBBB','CCCC','DDDD','EEEE','FFFF','GGGG','HHHH'];
+    const rows = [];
+    for (let i = 0; i < 40; i++) {
+      const d = new Date(Date.now() - Math.random() * 14 * 86400000);
+      rows.push({
+        id: i, issuer_code: codes[Math.floor(Math.random()*codes.length)],
+        ip_address: Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'.x.x',
+        login_count: Math.floor(Math.random()*10)+1,
+        failed_attempts: Math.floor(Math.random()*5),
+        log_date: d.toISOString().slice(0,10),
+        last_login_at: d.toISOString(),
+      });
+    }
+    return rows.sort((a,b) => new Date(b.last_login_at)-new Date(a.last_login_at));
+  }
+
+  // ── fetch ─────────────────────────────────────────────────────────────────
+  async function loadData() {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/login_activity?select=*&order=last_login_at.desc&limit=500', {
+        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+      });
+      if (!res.ok) throw new Error();
+      allData = await res.json();
+      document.getElementById('notice').style.display = 'none';
+      document.getElementById('sub-text').textContent = 'Live • auto-refreshes every 30s · Last updated just now';
+    } catch(e) {
+      allData = getMock();
+      document.getElementById('notice').style.display = 'block';
+      document.getElementById('sub-text').textContent = '⚠️ Demo data · Last updated just now';
+    }
+    render();
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  function render() {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    const totalLogins  = allData.reduce((s,r) => s+(r.login_count||0), 0);
+    const totalFailed  = allData.reduce((s,r) => s+(r.failed_attempts||0), 0);
+    const uniqueIssuers = new Set(allData.map(r=>r.issuer_code)).size;
+    const uniqueIPs    = new Set(allData.map(r=>r.ip_address)).size;
+    const rate = totalLogins+totalFailed > 0 ? Math.round(totalLogins/(totalLogins+totalFailed)*100) : 0;
+    const suspicious = allData.filter(r=>r.failed_attempts>=3);
+
+    document.getElementById('c-logins').textContent  = totalLogins;
+    document.getElementById('c-failed').textContent  = totalFailed;
+    document.getElementById('c-rate').textContent    = rate + '%';
+    document.getElementById('c-rate').style.color    = rate>70 ? '#10b981' : '#f59e0b';
+    document.getElementById('c-issuers').textContent = uniqueIssuers;
+    document.getElementById('c-ips').textContent     = uniqueIPs;
+    document.getElementById('c-sus').textContent     = suspicious.length;
+    document.getElementById('c-sus').style.color     = suspicious.length>0 ? '#f43f5e' : '#10b981';
+    document.getElementById('sus-tab').textContent   = suspicious.length>0
+      ? '⚠️ Suspicious ('+suspicious.length+')' : '⚠️ Suspicious';
+
+    renderChart();
+    renderIssuerBars();
+    renderIssuersTable();
+    renderSuspicious();
+    renderLog();
+  }
+
+  function renderChart() {
+    const dayMap = {};
+    for (let i=13; i>=0; i--) {
+      const d = new Date(Date.now()-i*86400000).toISOString().slice(0,10);
+      dayMap[d] = {s:0, f:0};
+    }
+    allData.forEach(r => {
+      if (dayMap[r.log_date]) { dayMap[r.log_date].s += r.login_count||0; dayMap[r.log_date].f += r.failed_attempts||0; }
+    });
+    const days = Object.entries(dayMap);
+    const maxBar = Math.max(...days.map(([,v])=>v.s+v.f), 1);
+    document.getElementById('chart').innerHTML = days.map(([day,v]) => `
+      <div class="bar-col">
+        <div class="bar-stack">
+          <div class="bar-f" style="height:${(v.f/maxBar)*100}%" title="${v.f} failed"></div>
+          <div class="bar-s" style="height:${(v.s/maxBar)*100}%" title="${v.s} logins"></div>
+        </div>
+        <div class="bar-lbl">${fmtDate(day)}</div>
+      </div>`).join('');
+  }
+
+  function getIssuerMap() {
+    const m = {};
+    allData.forEach(r => {
+      if (!m[r.issuer_code]) m[r.issuer_code] = {logins:0, failed:0, ips:new Set(), last:r.last_login_at};
+      m[r.issuer_code].logins  += r.login_count||0;
+      m[r.issuer_code].failed  += r.failed_attempts||0;
+      m[r.issuer_code].ips.add(r.ip_address);
+      if (r.last_login_at > m[r.issuer_code].last) m[r.issuer_code].last = r.last_login_at;
+    });
+    return Object.entries(m).sort((a,b)=>b[1].logins-a[1].logins);
+  }
+
+  function renderIssuerBars() {
+    const issuers = getIssuerMap();
+    const maxL = issuers[0]?.[1].logins || 1;
+    document.getElementById('issuer-bars').innerHTML = issuers.slice(0,8).map(([code,v]) => `
+      <div class="issuer-row">
+        <div class="issuer-code">${code}</div>
+        <div class="issuer-bar"><div class="issuer-fill" style="width:${(v.logins/maxL)*100}%"></div></div>
+        <div class="issuer-stats">
+          <span class="green">${v.logins}✓</span>
+          ${v.failed>0 ? '<span class="red" style="margin-left:6px">'+v.failed+'✗</span>' : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  function renderIssuersTable() {
+    document.getElementById('tbl-issuers').innerHTML = getIssuerMap().map(([code,v]) => {
+      const rate = Math.round(v.logins/((v.logins+v.failed)||1)*100);
+      return `<tr>
+        <td class="bold">${code}</td>
+        <td class="green bold">${v.logins}</td>
+        <td style="color:${v.failed>0?'#f43f5e':'#64748b'};font-weight:600">${v.failed}</td>
+        <td><span class="badge" style="background:${rate>70?'#10b98122':'#f43f5e22'};color:${rate>70?'#10b981':'#f43f5e'}">${rate}%</span></td>
+        <td style="color:#94a3b8">${v.ips.size}</td>
+        <td class="small" style="color:#64748b">${timeAgo(v.last)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderSuspicious() {
+    const sus = allData.filter(r=>r.failed_attempts>=3).sort((a,b)=>b.failed_attempts-a.failed_attempts);
+    if (sus.length===0) {
+      document.getElementById('sus-content').innerHTML = '<div style="color:#10b981;padding:20px;text-align:center">✅ No suspicious activity detected!</div>';
+      return;
+    }
+    document.getElementById('sus-content').innerHTML = `
+      <table><thead><tr>
+        <th>Issuer Code</th><th>IP Address</th><th>Failed Attempts</th><th>Logins</th><th>Date</th><th>Last Seen</th>
+      </tr></thead><tbody>${sus.map(r=>`
+        <tr style="background:${r.failed_attempts>=5?'#f43f5e08':'transparent'}">
+          <td class="bold">${r.issuer_code}</td>
+          <td class="mono yellow">${r.ip_address}</td>
+          <td><span class="badge" style="background:#f43f5e22;color:#f43f5e;font-weight:700">${r.failed_attempts} fails</span></td>
+          <td class="green">${r.login_count}</td>
+          <td class="small" style="color:#64748b">${r.log_date}</td>
+          <td class="small" style="color:#64748b">${timeAgo(r.last_login_at)}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+  }
+
+  function renderLog() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const filtered = allData.filter(r => !q || r.issuer_code.toLowerCase().includes(q) || r.ip_address.includes(q));
+    document.getElementById('log-title').textContent = '📋 Full Log (' + filtered.length + ' records)';
+    document.getElementById('tbl-log').innerHTML = filtered.slice(0,100).map(r=>`
+      <tr>
+        <td class="bold">${r.issuer_code}</td>
+        <td class="mono small" style="color:#94a3b8">${r.ip_address}</td>
+        <td class="green bold">${r.login_count}</td>
+        <td style="color:${r.failed_attempts>0?'#f43f5e':'#475569'};font-weight:600">${r.failed_attempts}</td>
+        <td class="small" style="color:#64748b">${r.log_date}</td>
+        <td class="small" style="color:#64748b">${timeAgo(r.last_login_at)}</td>
+      </tr>`).join('');
+  }
+
+  // ── tabs ──────────────────────────────────────────────────────────────────
+  function showTab(id, btn) {
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('panel-'+id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── auto refresh ──────────────────────────────────────────────────────────
+  function toggleAuto() {
+    autoRefresh = !autoRefresh;
+    const btn = document.getElementById('btn-auto');
+    if (autoRefresh) {
+      btn.textContent = '⏸ Pause Auto-refresh';
+      btn.className = 'btn btn-live';
+      timer = setInterval(loadData, 30000);
+    } else {
+      btn.textContent = '▶ Resume Auto-refresh';
+      btn.className = 'btn';
+      clearInterval(timer);
+    }
+  }
+
+  // ── start ─────────────────────────────────────────────────────────────────
+  loadData();
+  timer = setInterval(loadData, 30000);
+</script>
 </body>
 </html>
