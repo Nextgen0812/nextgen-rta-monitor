@@ -5,90 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NextGen RTA Login Monitor</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@latest/dist/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/supabase-js/dist/umd/supabase.js"></script>
 </head>
 <body>
-    <div class="container">
+    <header>
         <h1>NextGen RTA Login Monitor</h1>
-        <div class="tabs">
-            <button class="tablinks" onclick="openTab(event, 'Overview')">Overview</button>
-            <button class="tablinks" onclick="openTab(event, 'Issuers')">Issuers</button>
-            <button class="tablinks" onclick="openTab(event, 'Suspicious')">Suspicious</button>
-            <button class="tablinks" onclick="openTab(event, 'Log')">Log</button>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#tab1">Tab 1</a></li>
+            <li><a href="#tab2">Tab 2</a></li>
+            <li><a href="#tab3">Tab 3</a></li>
+        </ul>
+    </nav>
+    <main>
+        <div id="tab1" class="tab-content">
+            <h2>Dashboard</h2>
+            <div id="chart"></div>
         </div>
-
-        <div id="Overview" class="tabcontent">
-            <h3>Overview</h3>
-            <canvas id="overviewChart"></canvas>
+        <div id="tab2" class="tab-content">
+            <h2>Settings</h2>
+            <p>Settings content goes here.</p>
         </div>
-
-        <div id="Issuers" class="tabcontent">
-            <h3>Issuers</h3>
-            <canvas id="issuersChart"></canvas>
+        <div id="tab3" class="tab-content">
+            <h2>Log</h2>
+            <p>Log content goes here.</p>
         </div>
-
-        <div id="Suspicious" class="tabcontent">
-            <h3>Suspicious</h3>
-            <p>Details about suspicious activity will be displayed here.</p>
-        </div>
-
-        <div id="Log" class="tabcontent">
-            <h3>Log</h3>
-            <p>Logs of activities will be displayed here.</p>
-        </div>
-    </div>
-
+    </main>
+    <footer>
+        <p>&copy; 2026 NextGen RTA Monitor</p>
+    </footer>
     <script>
-        const { createClient } = supabase;
-        const supabaseUrl = 'https://dkitqmcygkyonlcjcofj.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRraXRxbWN5Z2t5b25sY2pjb2ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTYwMDgsImV4cCI6MjA4ODM3MjAwOH0.ED0Ybc-Iqi4tjj4VhgqJaxk9Ca4l6HTuQuX9b40N4BU';
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        const overviewCtx = document.getElementById('overviewChart').getContext('2d');
-        const issuersCtx = document.getElementById('issuersChart').getContext('2d');
-
-        // Function to fetch data and update charts
+        // Fetch data and update chart
         async function fetchData() {
-            const { data: overviewData } = await supabase
-                .from('overview')
+            let { data, error } = await supabase
+                .from('table_name')
                 .select('*');
-            const { data: issuersData } = await supabase
-                .from('issuers')
-                .select('*');
-
-            // Update charts here using the fetched data
-            // Example: overviewChart.update();
-            // Example: issuersChart.update();
+            if (!error) {
+                console.log(data);
+                // Update chart with data
+            }
         }
 
-        // Tabs functionality
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tablinks");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-
-        // Auto-refresh data every 5 minutes
-        setInterval(fetchData, 5 * 60 * 1000);
-
-        // Initial fetch of data
-        fetchData();
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+        });
     </script>
-    <style>
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .tabcontent { display: none; }
-        .tabcontent.active { display: block; }
-        canvas { width: 100%; height: 400px; }
-    </style>
 </body>
 </html>
